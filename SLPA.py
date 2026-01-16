@@ -15,6 +15,8 @@ def _sample_label(memory_dict):
     if total <= 0:
         return labels[0]
     return labels[np.random.multinomial(1, [freq / total for freq in freqs]).argmax()]
+
+
 def find_communities(G, T, r):
     #将图中数据录入到数据字典中以便使用
     weight = {j:{} for j in G.nodes()}
@@ -58,7 +60,7 @@ def find_communities(G, T, r):
     '''
     communities = {}
     #扫描memory中的记录标签，相同标签的节点加入同一个社区中
-    for primary, change in memory.iteritems():
+    for primary, change in memory.items():
         for label in change.keys():
             if label in communities:
                 communities[label].add(primary)
