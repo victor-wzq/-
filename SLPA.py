@@ -2,8 +2,21 @@
 import numpy as np
 import networkx as nx
 from collections import defaultdict
-import os
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
+
+def _sample_label(memory_dict):
+    labels = list(memory_dict.keys())
+    freqs = list(memory_dict.values())
+    total = float(sum(freqs))
+    if total <= 0:
+        return labels[0]
+    return labels[np.random.multinomial(1, [freq / total for freq in freqs]).argmax()]
+
+
 def find_communities(G, T, r):
     #将图中数据录入到数据字典中以便使用
     weight = {j:{} for j in G.nodes()}
@@ -25,10 +38,9 @@ def find_communities(G, T, r):
                 continue
             labels = defaultdict(int)
             #遍历所有与其相关联的节点
-            for j, speaker in enumerate(speakerlist):
-                total = float(sum(memory[speaker].values()))
+            for speaker in speakerlist:
                 #查看speaker中memory中出现概率最大的标签并记录，key是标签名，value是Listener与speaker之间的权
-                labels[memory[speaker].keys()[np.random.multinomial(1,[freq / total for freq in memory[speaker].values()]).argmax()]] += weight[listener][speaker]
+                labels[_sample_label(memory[speaker])] += weight[listener][speaker]
             #查看labels中值最大的标签，让其成为当前listener的一个记录
             maxlabel = max(labels, key=labels.get)
             if maxlabel in memory[listener]:
@@ -37,18 +49,18 @@ def find_communities(G, T, r):
                 memory[listener][maxlabel] = 1.5
     #提取出每个节点memory中记录标签出现最多的一个
     for primary in memory:
-        p = memory[primary].keys()[np.random.multinomial(1,[freq/total for freq in memory[primary].values()]).argmax()]
-        memory[primary]={p:memory[primary][p]}
+        p = _sample_label(memory[primary])
+        memory[primary] = {p: memory[primary][p]}
     #如果希望将那种所属社区不明显的节点排除的就使用下面这段注释代码
     '''
-    for primary, change in memory.iteritems():
+    for primary, change in memory.items():
         for change_name, change_number in change.items():
             if change_number / float(T + 1) < r:
                 del change[change_name]
     '''
     communities = {}
     #扫描memory中的记录标签，相同标签的节点加入同一个社区中
-    for primary, change in memory.iteritems():
+    for primary, change in memory.items():
         for label in change.keys():
             if label in communities:
                 communities[label].add(primary)
